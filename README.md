@@ -4,7 +4,7 @@ Scalable runtime for Agents, MCP Servers, and coding sandboxes, orchestrated wit
 ## Features
 - Distributed resource-aware tool execution on Ray clusters
 - Framework-agnostic agent adapters (LangGraph, etc.)
-- Secure gVisor-sandboxed environments
+- Secure gVisor-sandboxed environments for AI generated code execution
 
 ## License
 
