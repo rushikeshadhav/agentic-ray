@@ -1,164 +1,92 @@
-"""Ray Serve deployment for MCP Filesystem Server.
+"""Ray Serve deployment for MCP Datasets Server.
 
-This runs the MCP filesystem server as a Ray Serve deployment,
-providing HTTP access to filesystem operations.
+This runs the MCP datasets server as a Ray Serve deployment,
+providing HTTP access to dataset operations.
 """
 
+import os
 from pathlib import Path
 from typing import Any
 
 import ray
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from ray import serve
 
 app = FastAPI()
 
 
-class FilesystemMCPServer:
-    """MCP Filesystem server that operates on the host filesystem."""
+class DatasetsMCPServer:
+    """MCP Datasets server that provides controlled access to datasets."""
 
-    def __init__(self, allowed_directories: list[str]):
-        """Initialize with allowed directories.
+    def __init__(self, datasets_directory: str):
+        """Initialize with datasets directory.
 
         Args:
-            allowed_directories: List of directories that can be accessed
+            datasets_directory: Path to the datasets directory
         """
-        self.allowed_directories = [Path(d).resolve() for d in allowed_directories]
+        self.datasets_dir = Path(datasets_directory).resolve()
 
-    def _is_path_allowed(self, path: Path) -> bool:
-        """Check if a path is within allowed directories."""
-        resolved_path = path.resolve()
-        return any(
-            str(resolved_path).startswith(str(allowed_dir))
-            for allowed_dir in self.allowed_directories
-        )
+        if not self.datasets_dir.exists():
+            raise ValueError(f"Datasets directory does not exist: {datasets_directory}")
 
-    def read_file(self, path: str) -> dict[str, Any]:
-        """Read file contents."""
-        file_path = Path(path)
+    def list_datasets(self) -> dict[str, Any]:
+        """List available datasets (names only, no paths).
 
-        if not self._is_path_allowed(file_path):
-            return {"error": f"Access denied: {path} is outside allowed directories"}
+        Returns:
+            Dictionary with 'datasets' key containing list of dataset filenames
+        """
+        try:
+            datasets = []
+            for item in sorted(self.datasets_dir.iterdir()):
+                if item.is_file():
+                    datasets.append(item.name)
+
+            return {"datasets": datasets}
+        except Exception as e:
+            return {"error": f"Error listing datasets: {str(e)}"}
+
+    def import_dataset(self, name: str) -> dict[str, Any]:
+        """Import a dataset by name.
+
+        Args:
+            name: Dataset filename (e.g., 'data.csv')
+
+        Returns:
+            Dictionary with 'content' and 'name' keys, or 'error' if failed
+        """
+        # Validate name to prevent path traversal
+        if "/" in name or "\\" in name or name.startswith("."):
+            return {"error": f"Invalid dataset name: {name}"}
+
+        file_path = self.datasets_dir / name
+
+        # Ensure the resolved path is still within datasets directory
+        try:
+            resolved = file_path.resolve()
+            if not str(resolved).startswith(str(self.datasets_dir)):
+                return {"error": f"Access denied: {name}"}
+        except Exception:
+            return {"error": f"Invalid dataset name: {name}"}
 
         if not file_path.exists():
-            return {"error": f"File not found: {path}"}
+            return {"error": f"Dataset not found: {name}"}
 
         if not file_path.is_file():
-            return {"error": f"Not a file: {path}"}
+            return {"error": f"Not a file: {name}"}
 
         try:
             with open(file_path, encoding="utf-8") as f:
                 content = f.read()
-            return {"content": content}
+            return {"content": content, "name": name}
         except Exception as e:
-            return {"error": f"Error reading file: {str(e)}"}
-
-    def write_file(self, path: str, content: str) -> dict[str, Any]:
-        """Write content to a file."""
-        file_path = Path(path)
-
-        if not self._is_path_allowed(file_path):
-            return {"error": f"Access denied: {path} is outside allowed directories"}
-
-        try:
-            file_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(file_path, "w", encoding="utf-8") as f:
-                f.write(content)
-            return {"success": True, "message": f"Successfully wrote to {path}"}
-        except Exception as e:
-            return {"error": f"Error writing file: {str(e)}"}
-
-    def list_directory(self, path: str) -> dict[str, Any]:
-        """List directory contents."""
-        dir_path = Path(path)
-
-        if not self._is_path_allowed(dir_path):
-            return {"error": f"Access denied: {path} is outside allowed directories"}
-
-        if not dir_path.exists():
-            return {"error": f"Directory not found: {path}"}
-
-        if not dir_path.is_dir():
-            return {"error": f"Not a directory: {path}"}
-
-        try:
-            entries = []
-            for item in sorted(dir_path.iterdir()):
-                entry = {
-                    "name": item.name,
-                    "type": "directory" if item.is_dir() else "file",
-                    "path": str(item),
-                }
-                if item.is_file():
-                    entry["size"] = item.stat().st_size
-                entries.append(entry)
-
-            return {"entries": entries}
-        except Exception as e:
-            return {"error": f"Error listing directory: {str(e)}"}
-
-    def search_files(self, path: str, pattern: str) -> dict[str, Any]:
-        """Search for files matching a pattern."""
-        search_path = Path(path)
-
-        if not self._is_path_allowed(search_path):
-            return {"error": f"Access denied: {path} is outside allowed directories"}
-
-        if not search_path.exists():
-            return {"error": f"Directory not found: {path}"}
-
-        if not search_path.is_dir():
-            return {"error": f"Not a directory: {path}"}
-
-        try:
-            matches = []
-            for match in search_path.glob(pattern):
-                if self._is_path_allowed(match):
-                    matches.append(
-                        {
-                            "path": str(match),
-                            "type": "directory" if match.is_dir() else "file",
-                        }
-                    )
-
-            return {"matches": matches, "count": len(matches)}
-        except Exception as e:
-            return {"error": f"Error searching files: {str(e)}"}
-
-    def get_file_info(self, path: str) -> dict[str, Any]:
-        """Get file or directory information."""
-        file_path = Path(path)
-
-        if not self._is_path_allowed(file_path):
-            return {"error": f"Access denied: {path} is outside allowed directories"}
-
-        if not file_path.exists():
-            return {"error": f"Path not found: {path}"}
-
-        try:
-            stat = file_path.stat()
-            info = {
-                "path": str(file_path),
-                "name": file_path.name,
-                "type": "directory" if file_path.is_dir() else "file",
-                "size": stat.st_size,
-                "created": stat.st_ctime,
-                "modified": stat.st_mtime,
-                "accessed": stat.st_atime,
-            }
-            return info
-        except Exception as e:
-            return {"error": f"Error getting file info: {str(e)}"}
+            return {"error": f"Error reading dataset: {str(e)}"}
 
     def call_tool(self, tool_name: str, arguments: dict[str, Any]) -> dict[str, Any]:
         """Call a tool with the given arguments."""
         tools = {
-            "read_file": self.read_file,
-            "write_file": self.write_file,
-            "list_directory": self.list_directory,
-            "search_files": self.search_files,
-            "get_file_info": self.get_file_info,
+            "list_datasets": self.list_datasets,
+            "import_dataset": self.import_dataset,
         }
 
         if tool_name not in tools:
@@ -178,18 +106,18 @@ class FilesystemMCPServer:
 @serve.deployment(num_replicas=1)
 @serve.ingress(app)
 class MCPServeDeployment:
-    """Ray Serve deployment for MCP filesystem server."""
+    """Ray Serve deployment for MCP datasets server."""
 
-    def __init__(self, allowed_directories: list[str]):
+    def __init__(self, datasets_directory: str):
         """Initialize the MCP server deployment.
 
         Args:
-            allowed_directories: List of directories that can be accessed
+            datasets_directory: Path to the datasets directory
         """
-        self.server = FilesystemMCPServer(allowed_directories)
+        self.server = DatasetsMCPServer(datasets_directory)
 
     @app.post("/tools/call")
-    async def call_tool(self, request: dict) -> JSONResponse:
+    async def call_tool(self, request: Request) -> JSONResponse:
         """Handle MCP tool calls via HTTP.
 
         Request format:
@@ -199,8 +127,9 @@ class MCPServeDeployment:
         }
         """
         try:
-            tool_name = request.get("tool")
-            arguments = request.get("arguments", {})
+            body = await request.json()
+            tool_name = body.get("tool")
+            arguments = body.get("arguments", {})
 
             if not tool_name:
                 raise HTTPException(status_code=400, detail="Missing 'tool' field")
@@ -219,11 +148,11 @@ class MCPServeDeployment:
         return {"status": "healthy"}
 
 
-def start_mcp_server(allowed_directories: list[str], port: int = 8265) -> Any | None:
-    """Start the MCP filesystem server as a Ray Serve deployment.
+def start_mcp_server(datasets_directory: str, port: int = 8265) -> Any | None:
+    """Start the MCP datasets server as a Ray Serve deployment.
 
     Args:
-        allowed_directories: List of directories that can be accessed
+        datasets_directory: Path to the datasets directory
         port: Port for Ray Serve (default: 8265)
 
     Returns:
@@ -239,9 +168,9 @@ def start_mcp_server(allowed_directories: list[str], port: int = 8265) -> Any | 
 
         try:
             existing_apps = serve.status().applications
-            if "mcp-filesystem" in existing_apps:
+            if "mcp-datasets" in existing_apps:
                 print(
-                    f"✓ MCP Filesystem Server already running at http://localhost:{port}/mcp"
+                    f"✓ MCP Datasets Server already running at http://localhost:{port}/mcp"
                 )
                 return None
         except Exception:
@@ -250,30 +179,28 @@ def start_mcp_server(allowed_directories: list[str], port: int = 8265) -> Any | 
     except Exception:
         serve.start(detached=True, http_options={"host": "0.0.0.0", "port": port})
 
-    deployment = MCPServeDeployment.bind(allowed_directories=allowed_directories)
+    deployment = MCPServeDeployment.bind(datasets_directory=datasets_directory)
 
     serve.run(
         deployment,
-        name="mcp-filesystem",
+        name="mcp-datasets",
         route_prefix="/mcp",
     )
 
-    print(f"✓ MCP Filesystem Server running at http://localhost:{port}/mcp")
-    print(f"  Allowed directories: {allowed_directories}")
+    print(f"✓ MCP Datasets Server running at http://localhost:{port}/mcp")
+    print(f"  Datasets directory: {datasets_directory}")
     print(f"  Health check: http://localhost:{port}/mcp/health")
 
     return deployment
 
 
 if __name__ == "__main__":
-    examples_dir = Path(__file__).parent.parent
-    allowed_dirs = [
-        str(examples_dir / "datasets"),
-        str(examples_dir / "servers"),
-    ]
+    examples_dir = Path(__file__).parent
+    datasets_dir = os.getenv("DATASETS_DIR", str(examples_dir / "datasets"))
+    port = int(os.getenv("MCP_PORT", "8000"))
 
-    print("Starting MCP Filesystem Server...")
-    start_mcp_server(allowed_dirs)
+    print(f"Starting MCP Datasets Server on port {port}...")
+    start_mcp_server(datasets_dir, port=port)
 
     print("\nServer is running. Press Ctrl+C to stop.")
     try:
