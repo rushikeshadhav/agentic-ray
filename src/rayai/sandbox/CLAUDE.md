@@ -85,7 +85,7 @@ Key settings in `config.py`:
 6. **Documentation**: Update this file and main README
 
 ## Related Modules
-- `src/ray_agents/base.py` - Core protocols
+- `src/rayai/base.py` - Core protocols
 - `examples/analyzer/` - Example using sandbox for code execution
 - `tests/test_code_interpreter.py` - Sandbox tests
 - `scripts/` - gVisor setup scripts

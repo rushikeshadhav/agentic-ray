@@ -8,11 +8,12 @@ The adapter pattern allows the runtime to remain framework-agnostic while suppor
 
 ## Directory Structure
 
-- `abc.py` - Base adapter classes (`ToolAdapter`, `AgentFramework` enum)
-- `langchain/` - LangChain-specific adapters and converters
-  - `tools.py` - `from_langchain_tool()` function
-- `pydantic/` - Pydantic AI adapter (minimal - uses base `ToolAdapter`)
-  - Currently just `__init__.py` (no Pydantic-specific converter needed)
+- `abc.py` - Adapter façade (`AgentFramework`, `ToolAdapter`) for high-level use
+- `core.py` - Core tool-conversion logic and canonical `RayTool` IR
+- `langchain/` - LangChain-specific helpers
+  - `tools.py` - `from_langchain_tool()` function (legacy convenience wrapper)
+- `pydantic/` - Pydantic AI helpers
+  - `tools.py` - Helpers to convert Ray tools to Pydantic AI-compatible callables
 
 ## Key Concepts an AI Should Know
 
@@ -33,9 +34,11 @@ The adapter pattern allows the runtime to remain framework-agnostic while suppor
 ## Key Files
 
 - `abc.py`: `ToolAdapter` class that wraps Ray tools for any framework, `AgentFramework` enum
+- `core.py`: `RayTool` IR + converters (`to_raytool`, `from_raytool`, framework detection, batch support)
 - `langchain/tools.py`: `from_langchain_tool()` converts LangChain `BaseTool` instances to Ray remote functions
 - `langchain/__init__.py`: Exports `from_langchain_tool`
-- `pydantic/__init__.py`: Empty (Pydantic AI uses base `ToolAdapter` directly, no special converter needed)
+- `pydantic/tools.py`: Helpers for Pydantic AI tool integration (built on `RayTool`)
+- `pydantic/__init__.py`: Exposes Pydantic helpers if needed
 
 ## Do / Don't
 
@@ -66,7 +69,8 @@ The adapter pattern allows the runtime to remain framework-agnostic while suppor
 
 ## Related Modules
 
-- `src/ray_agents/base.py` - Core protocols and interfaces
-- `src/ray_agents/decorators.py` - Tool decoration utilities
+- `src/rayai/base.py` - Core protocols and interfaces
+- `src/rayai/decorators.py` - Tool decoration utilities
+- `src/rayai/batch.py` - `BatchTool` which also uses `RayTool` IR
 - `examples/` - Usage examples for each framework
 - `tests/test_tool_adapters.py` - Adapter tests

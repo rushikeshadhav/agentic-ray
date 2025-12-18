@@ -17,7 +17,7 @@ The goal is to make tool-heavy or multi-agent systems easy to scale across CPUs/
 ## Key Concepts an AI Should Know
 
 - A "tool call" maps to a Ray task/actor, enabling distributed execution
-- Agents may use different frameworks (LangGraph, Pydantic AI, etc.); adapters in `src/ray_agents/adapters/` unify them
+- Agents may use different frameworks (LangGraph, Pydantic AI, etc.); adapters in `src/rayai/adapters/` unify them
 - Code execution happens inside controlled Docker sandboxes with gVisor for security isolation
 - The repo is framework-agnostic; avoid coupling to any single agent architecture
 - Tools are decorated with `@tool` or converted via adapters to become Ray remote functions
@@ -25,7 +25,7 @@ The goal is to make tool-heavy or multi-agent systems easy to scale across CPUs/
 
 ## Project Structure Overview
 
-- `src/ray_agents/` – core runtime, agents, tools, sandbox logic, adapters, CLI
+- `src/rayai/` – core runtime, agents, tools, sandbox logic, adapters, CLI
 - `examples/` – example uses of agents and tools on Ray (analyzer, finance_agent)
 - `tests/` – unit tests for runtime execution, tool adapters, sandbox behavior
 - `scripts/` – developer or cluster helper scripts (gVisor setup, Docker configuration)
@@ -63,9 +63,9 @@ The goal is to make tool-heavy or multi-agent systems easy to scale across CPUs/
 
 See subdirectory `CLAUDE.md` files for detailed directory purposes:
 
-- `src/ray_agents/CLAUDE.md` - Core runtime implementation
-- `src/ray_agents/adapters/CLAUDE.md` - Framework adapters
-- `src/ray_agents/cli/CLAUDE.md` - CLI tools
-- `src/ray_agents/sandbox/CLAUDE.md` - Sandbox execution
+- `src/rayai/CLAUDE.md` - Core runtime implementation
+- `src/rayai/adapters/CLAUDE.md` - Framework adapters
+- `src/rayai/cli/CLAUDE.md` - CLI tools
+- `src/rayai/sandbox/CLAUDE.md` - Sandbox execution
 - `examples/CLAUDE.md` - Example applications
 - `tests/CLAUDE.md` - Test suite

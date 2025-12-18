@@ -107,7 +107,7 @@ cd examples/analyzer/token_efficient_agent
 - **Adjust timeout**: Update `agent.py` execution timeout
 
 ## Related Modules
-- `src/ray_agents/sandbox/` - Sandbox execution system
-- `src/ray_agents/adapters/` - Framework adapters (if using LangChain)
+- `src/rayai/sandbox/` - Sandbox execution system
+- `src/rayai/adapters/` - Framework adapters (if using LangChain/Pydantic AI)
 - `examples/CLAUDE.md` - General examples documentation
 

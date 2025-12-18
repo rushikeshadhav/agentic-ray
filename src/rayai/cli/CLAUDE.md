@@ -10,11 +10,13 @@ This directory contains the command-line interface (CLI) for Agentic Ray. The CL
 The CLI is the primary user-facing tool for interacting with the Agentic Ray runtime.
 
 ## Directory Structure
-- `cli.py` - Main CLI entry point and command group
+- `cli.py` - Main CLI entry point and command group, wires up all subcommands
+- `analytics.py` - Shared helpers for anonymous CLI usage analytics (PostHog)
 - `commands/` - Individual command implementations
-  - `init.py` - Initialize new project
-  - `create_agent.py` - Create agent from template
-  - `serve.py` - Serve agent with Ray Serve
+  - `init.py` - Initialize new project from templates
+  - `create_agent.py` - Create agent from template (python/langchain/pydantic)
+  - `serve.py` - Serve agents with Ray Serve
+  - `analytics.py` - `rayai analytics` subcommands (on/off/status)
 - `templates/` - Project and agent templates
   - `agent/` - Agent template structure
 
@@ -26,6 +28,8 @@ The CLI is the primary user-facing tool for interacting with the Agentic Ray run
 - `serve` command discovers agents by scanning `agents/` directory for `@agent` decorated classes
 - Agent discovery looks for `agents/<name>/agent.py` files with classes decorated with `@agent`
 - `create_agent` generates framework-specific templates (python, langchain, pydantic)
+- `analytics` commands manage opt-in/opt-out for anonymous CLI usage analytics
+- Analytics uses a local config dir (`~/.rayai`) and `posthog` SDK, and must never break CLI behavior
 - Commands should be self-contained and handle errors gracefully
 
 ## Command Overview
@@ -50,9 +54,11 @@ Discovers and serves agents from the `agents/` directory using Ray Serve.
 
 ## Key Files
 - `cli.py`: Main CLI group and entry point, registers all commands
+- `analytics.py`: Low-level analytics helpers (`track`, anonymous ID, DO_NOT_TRACK env vars)
 - `commands/init.py`: Project initialization from templates, handles `pyproject.toml` and `README.md` variable substitution
 - `commands/create_agent.py`: Agent creation with framework-specific templates (python/langchain/pydantic)
 - `commands/serve.py`: Agent discovery from `agents/` directory, Ray Serve deployment, FastAPI endpoint creation
+- `commands/analytics.py`: User-facing `rayai analytics` command group (on/off/status)
 - `templates/agent/`: Project template structure (agents/, pyproject.toml, README.md)
 
 ## Do / Don't
@@ -83,10 +89,10 @@ Discovers and serves agents from the `agents/` directory using Ray Serve.
 6. Update main README if command is user-facing
 
 ## Related Modules
-- `src/ray_agents/deployment.py` - Ray Serve deployment utilities used by `serve` command (supports streaming via `run_stream`/`run_stream_events`)
-- `src/ray_agents/base.py` - AgentProtocol used for validation
-- `src/ray_agents/decorators.py` - `@agent` decorator used for agent discovery
-- `src/ray_agents/resource_loader.py` - Memory parsing used by deployment
+- `src/rayai/deployment.py` - Ray Serve deployment utilities used by `serve` command (supports streaming via `run_stream`/`run_stream_events`)
+- `src/rayai/base.py` - AgentProtocol used for validation
+- `src/rayai/decorators.py` - `@agent` decorator used for agent discovery
+- `src/rayai/resource_loader.py` - Memory parsing used by deployment
 - `examples/` - Example agents that can be served
 - Templates reference core runtime APIs
 

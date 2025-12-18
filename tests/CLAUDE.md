@@ -51,6 +51,6 @@ Tests protect against regressions when modifying the core runtime and validate t
 
 ## Related Modules
 
-- Tests load functions/classes from `src/ray_agents/`
+- Tests load functions/classes from `src/rayai/`
 - May use example code from `examples/` for integration testing
 - Should validate behavior documented in CLAUDE.md files

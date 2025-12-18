@@ -2,15 +2,20 @@
 
 ## Purpose of This Directory
 
-This directory contains the core implementation of the Agentic Ray runtime: agent adapters, tool execution logic, distributed scheduling behavior, sandbox integration, CLI tools, and deployment utilities.
+This directory contains the core implementation of the Agentic Ray (RayAI) runtime: agent adapters, tool execution logic, distributed scheduling behavior, sandbox integration, CLI tools, batch tools, and deployment utilities.
 
 It is the heart of the system and provides the foundational abstractions for building distributed agentic applications.
 
 ## Directory Structure
 
 - `base.py` - Core protocols and interfaces (`AgentProtocol`)
-- `adapters/` - Framework adapters for LangChain, Pydantic AI, etc.
-- `cli/` - Command-line interface for agent management
+- `adapters/` - Framework adapters and core tool-conversion logic:
+  - `abc.py` - `AgentFramework` enum and `ToolAdapter`
+  - `core.py` - `RayTool` IR and cross-framework conversion (`to_raytool`, `from_raytool`)
+  - `langchain/` - LangChain-specific helpers
+  - `pydantic/` - Pydantic AI helpers
+- `batch.py` - Generic `BatchTool` for parallel execution of any registered tool
+- `cli/` - Command-line interface for agent management (init, create-agent, serve, analytics)
 - `sandbox/` - Secure code execution with Docker/gVisor
 - `deployment.py` - Ray Serve deployment utilities with streaming support (`run_stream`, `run_stream_events`)
 - `decorators.py` - `@tool` and `@agent` decorators for marking functions/classes
@@ -28,7 +33,8 @@ It is the heart of the system and provides the foundational abstractions for bui
 - **`@tool` decorator**: Converts functions to Ray remote functions with resource requirements (CPUs, GPUs, memory)
 - **`@agent` decorator**: Marks classes as servable agents with resource configuration and replica count
 - **`execute_tools()`**: Utility for executing multiple tools sequentially or in parallel
-- Adapters bridge between agent frameworks and Ray's execution model
+- **Adapters/core**: `RayTool` IR + converters handle N×M framework integration (Ray tools, LangChain, Pydantic AI, plain callables, batch tools)
+- **`BatchTool`**: Lets LLMs call any registered tool by name with many inputs in parallel, returning structured success/error results
 - Tools decorated with `@tool` have `_remote_func`, `_tool_metadata`, and `_original_func` attributes
 
 ## How Code Here Is Intended to Be Used

@@ -93,7 +93,7 @@ python agent.py
 - **Add data sources**: Integrate additional financial APIs
 
 ## Related Modules
-- `src/ray_agents/adapters/pydantic/` - Pydantic AI adapter (if needed)
-- `src/ray_agents/sandbox/` - Code execution sandbox
+- `src/rayai/adapters/pydantic/` - Pydantic AI adapter/helpers (if needed)
+- `src/rayai/sandbox/` - Code execution sandbox
 - `examples/CLAUDE.md` - General examples documentation
 

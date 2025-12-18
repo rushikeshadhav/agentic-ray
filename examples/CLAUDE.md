@@ -53,13 +53,13 @@ Financial analysis agent that:
 ### ❌ Don't:
 
 - Introduce production features here
-- Reference internal/private APIs from `src/ray_agents/`
+- Reference internal/private APIs from `src/rayai/`
 - Add complex business logic or enterprise patterns
 - Create examples that require extensive external services
 - Hardcode API keys or sensitive credentials
 
 ## Related Modules
 
-- Relies on `src/ray_agents/` runtime APIs
-- Uses adapters from `src/ray_agents/adapters/` for framework integration
-- May use sandbox from `src/ray_agents/sandbox/` for code execution
+- Relies on `src/rayai/` runtime APIs
+- Uses adapters from `src/rayai/adapters/` for framework integration
+- May use sandbox from `src/rayai/sandbox/` for code execution
