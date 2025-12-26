@@ -330,7 +330,6 @@ class {agent_name.title().replace("_", "")}:
         # Create Agno agent (requires OPENAI_API_KEY env var)
         self.agno_agent = Agent(
             model="openai:gpt-4o-mini",
-            system_prompt="You are a helpful assistant.",
             tools=agno_tools,
         )
 
@@ -353,18 +352,12 @@ class {agent_name.title().replace("_", "")}:
         if not messages:
             return {{"error": "No messages provided"}}
 
-        # Get the last user message
-        user_message = None
-        for msg in reversed(messages):
-            if msg.get("role") == "user":
-                user_message = msg.get("content", "")
-                break
+        # Prepend a system prompt if one isn't already in the history.
+        if not any(msg.get("role") == "system" for msg in messages):
+            messages.insert(0, {{"role": "system", "content": "You are a helpful assistant."}})
 
-        if not user_message:
-            return {{"error": "No user message found"}}
+        # Run the agent with the message history
+        result = await self.agno_agent.arun(messages)
 
-        # Run the agent with the user message
-        result = await self.agno_agent.run(user_message)
-
-        return {{"response": result.output}}
+        return {{"response": result.content}}
     '''

@@ -60,11 +60,14 @@ class AgnoDemoAgent:
             return {"error": "No messages provided"}
 
         # Use the last user message as the current prompt
-        user_message = None
-        for msg in reversed(messages):
-            if msg.get("role") == "user":
-                user_message = msg.get("content", "")
-                break
+        user_message = next(
+            (
+                msg.get("content", "")
+                for msg in reversed(messages)
+                if msg.get("role") == "user"
+            ),
+            None,
+        )
 
         if not user_message:
             return {"error": "No user message found"}

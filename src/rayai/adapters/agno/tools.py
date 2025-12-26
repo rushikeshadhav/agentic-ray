@@ -63,7 +63,7 @@ def from_agno_tool(
             "For plain functions, use the @tool decorator from rayai instead."
         )
 
-    func = agno_tool._function
+    func = agno_tool.entrypoint
     tool_name = agno_tool.name or func.__name__
     tool_description = agno_tool.description or func.__doc__ or ""
 
